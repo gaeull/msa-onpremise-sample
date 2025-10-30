@@ -6,3 +6,5 @@ include 'api-gateway'
 include 'user-service'
 include 'product-service'
 include 'order-service'
+
+include 'config-server'

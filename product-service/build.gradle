@@ -10,6 +10,8 @@ dependencies {
 
     implementation project(':common')
 
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
