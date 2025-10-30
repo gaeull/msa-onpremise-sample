@@ -1,22 +1,28 @@
 package com.example.orderservice.controller;
 
+import com.example.common.event.OrderCreatedEvent;
 import com.example.orderservice.client.ProductClient;
 import com.example.common.dto.ProductDto;
+import com.example.orderservice.dto.CreateOrderRequest;
 import com.example.orderservice.dto.OrderDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import com.example.orderservice.kafka.OrderKafkaProducer;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
+@RequestMapping("/orders")
 @RequiredArgsConstructor
 @Tag(name="주문 API", description = "주문 관련 API입니다")
 public class OrderController {
     private final ProductClient productClient;
+    private final OrderKafkaProducer orderKafkaProducer;
 
     @GetMapping("/orders/products")
     public List<ProductDto> getProductsFromProductService() {
@@ -36,5 +42,21 @@ public class OrderController {
         return List.of(
                 new OrderDto("1", "김순곤", products)
         );
+    }
+
+    // 주문하기
+    @PostMapping
+    public String createOrder(@RequestBody CreateOrderRequest request) {
+        String orderId = UUID.randomUUID().toString();
+
+        OrderCreatedEvent event = new OrderCreatedEvent(
+                orderId,
+                request.getProductId(),
+                request.getQuantity()
+        );
+
+        orderKafkaProducer.send(event);
+
+        return "Order Success(OrderId = " + orderId + ")";
     }
 }
