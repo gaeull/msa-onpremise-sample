@@ -7,7 +7,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import java.util.List;
 
 // Eureka의 서비스명으로 통신함.
-@FeignClient (name = "product-service")
+@FeignClient (
+        name = "product-service",
+        fallback = ProductClientFallback.class
+)
 public interface ProductClient {
 
     @GetMapping("/products")
