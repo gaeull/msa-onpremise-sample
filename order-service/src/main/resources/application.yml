@@ -5,7 +5,8 @@ spring:
   application:
     name: order-service
   config:
-    import: optional:configserver:http://localhost:8888
+    # import: optional:configserver:http://localhost:8888
+    import: optional:configserver:http://config-server:8888
 
   cloud:
     openfeign:
@@ -13,7 +14,8 @@ spring:
         enabled: true # 해당 설정이 있어야 fallback이 동작함.
 
   kafka:
-    bootstrap-servers: localhost:9094
+    # bootstrap-servers: localhost:9094
+    bootstrap-servers: kafka:9094
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -30,11 +32,13 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: http://localhost:8761/eureka
-    instance:
-      hostname: localhost
-      prefer-ip-address: true
-      instance-id: ${spring.application.name}:${server.port}
+      # defaultZone: http://localhost:8761/eureka
+      defaultZone: http://discovery-server:8761/eureka
+  instance:
+    # hostname: localhost
+    hostname: order-service
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
 
 resilience4j:
   circuitbreaker:
@@ -60,7 +64,8 @@ management:
       probability: 1.0 # 모든 요청에 traceId 부여
   zipkin:
     tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+      # endpoint: http://localhost:9411/api/v2/spans
+      endpoint: http://zipkin:9411/api/v2/spans
   endpoints:
     web:
       exposure:

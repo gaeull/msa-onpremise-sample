@@ -24,7 +24,8 @@ public class OrderController {
     private final ProductClient productClient;
     private final OrderKafkaProducer orderKafkaProducer;
 
-    @GetMapping("/orders/products")
+    // @GetMapping("/orders/products")
+    @GetMapping("/products")
     public List<ProductDto> getProductsFromProductService() {
         return productClient.getProducts();
     }
