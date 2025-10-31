@@ -31,6 +31,10 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: http://localhost:8761/eureka
+    instance:
+      hostname: localhost
+      prefer-ip-address: true
+      instance-id: ${spring.application.name}:${server.port}
 
 resilience4j:
   circuitbreaker:
@@ -51,6 +55,12 @@ resilience4j:
         #  - com.example.common.exception.CustomValidationException
 
 management:
+  tracing:
+    sampling:
+      probability: 1.0 # 모든 요청에 traceId 부여
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
   endpoints:
     web:
       exposure:
