@@ -16,7 +16,8 @@ public class ProductController {
         return List.of(
             new ProductDto("1", "MacBook Pro", 3500000),
             new ProductDto("2", "iPad Air", 900000),
-            new ProductDto("3", "Galaxy S24", 1200000)
+            new ProductDto("3", "Galaxy S24", 1200000),
+            new ProductDto("4", "test CI", 950123220)
         );
     }
 }
