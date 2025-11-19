@@ -1,0 +1,54 @@
+name: user-service CI
+
+# workflow를 실행시키기 위한 event목록
+# dev 브랜치에 대한 변경사항(push, pull_request)을 감지하면 해당 브랜치에 CI workflow를 실행한다.
+on:
+  push:
+    branches: [ dev ]
+    paths:
+      - "user-service/**"
+  pull_request:
+    branches: [ dev ]
+    paths:
+      - "user-service/**"
+
+# workflow가 레포지토리의 콘텐츠에 대해서 읽기 권한만 갖도록함.
+# 즉, workflow가 레포지토리의 콘텐츠를 실수로 변경/삭제하는 것을 방지할 수 있음.
+permissions:
+  contents: read
+
+
+jobs:
+  # job명, build라는 job이 표시
+  build:
+    # Runner가 실행되는 환경을 정의하는 부분
+    runs-on: ubuntu-latest
+
+    # build Job내의 step 목록
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        # 현재 레포지토리의 소스코드를 runner에 다운로드하는 Action
+        # Docker build나 Gradle build를 하기 위해 반드시 필요함.
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          # java 17을 runner에 설치
+          # 이후, gradle build에서 해당 JDK를 사용하게됨.
+
+      - name: Build
+        working-directory: ./user-service
+        # user-service 디렉토리로 이동한 뒤, gradle 빌드 수행
+        run: ./gradlew clean build
+        # clean: 이전 빌드 산출물 삭제
+        # build: test + 컴파일 + jar 생성까지 모두 수행
+
+      - name: Docker build
+        run: |
+          docker build -t your-docker/user-service:${{ github.sha }} ./user-service
+
+      - name: Docker push
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker push your-docker/user-service:${{ github.sha }}
