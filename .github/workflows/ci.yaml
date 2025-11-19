@@ -1,150 +1,61 @@
-name: MSA PR CI Pipeline
+name: MSA CI Pipeline
 
 on:
-  pull_request:
-    branches: [ main ]
+  push:
+    branches:
+      - main
 
 jobs:
-
-  #########################################
-  # 🟡 1) 변경 파일 탐지 Job
-  #########################################
-  detect_changes:
+  build_and_push:
     runs-on: ubuntu-latest
-    outputs:
-      changed_files: ${{ steps.diff.outputs.changed_files }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0   # PR diff를 위해 반드시 full fetch 필요
 
-      - name: Fetch base branch
+    strategy:
+      matrix:
+        service: [
+          api-gateway,
+          product-service,
+          order-service,
+          user-service,
+          config-server,
+          discovery-server
+        ]
+
+    steps:
+      # 리포지토리 체크아웃
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Java 17 설치
+      - name: Set Up Java 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: temurin
+
+      # Gradle 캐싱 및 설정
+      - name: Gradle Setup
+        uses: gradle/gradle-build-action@v2
+
+      # 서비스별 Gradle Build
+      - name: Build Service - ${{ matrix.service }}
         run: |
-          git fetch origin ${{ github.base_ref }} --depth=1
+          chmod +x ./gradlew
+          ./gradlew :${{ matrix.service }}:clean :${{ matrix.service }}:build
 
-      - name: Determine changed files (PR diff)
-        id: diff
-        run: |
-          FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
-          echo "changed_files=$FILES" >> $GITHUB_OUTPUT
-
-          echo "🔍 Changed files:"
-          echo "$FILES"
-
-
-  #########################################
-  # 🔵 API-GATEWAY
-  #########################################
-  api_gateway:
-    needs: detect_changes
-    if: contains(needs.detect_changes.outputs.changed_files, 'api-gateway/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-java@v3
+      # Docker Hub Login
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - run: chmod +x api-gateway/gradlew
-
-      - name: Build API Gateway
-        working-directory: ./api-gateway
-        run: ./gradlew clean build
-
-
-  #########################################
-  # 🔵 PRODUCT SERVICE
-  #########################################
-  product_service:
-    needs: detect_changes
-    if: contains(needs.detect_changes.outputs.changed_files, 'product-service/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-java@v3
+      # Docker Build & Push
+      - name: Build and Push Docker Image - ${{ matrix.service }}
+        uses: docker/build-push-action@v5
         with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - run: chmod +x product-service/gradlew
-
-      - name: Build Product Service
-        working-directory: ./product-service
-        run: ./gradlew clean build
-
-
-  #########################################
-  # 🔵 ORDER SERVICE
-  #########################################
-  order_service:
-    needs: detect_changes
-    if: contains(needs.detect_changes.outputs.changed_files, 'order-service/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - run: chmod +x order-service/gradlew
-
-      - name: Build Order Service
-        working-directory: ./order-service
-        run: ./gradlew clean build
-
-
-  #########################################
-  # 🔵 USER SERVICE
-  #########################################
-  user_service:
-    needs: detect_changes
-    if: contains(needs.detect_changes.outputs.changed_files, 'user-service/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - run: chmod +x user-service/gradlew
-
-      - name: Build User Service
-        working-directory: ./user-service
-        run: ./gradlew clean build
-
-
-  #########################################
-  # 🔵 CONFIG SERVER
-  #########################################
-  config_server:
-    needs: detect_changes
-    if: contains(needs.detect_changes.outputs.changed_files, 'config-server/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Build Config Server
-        working-directory: ./config-server
-        run: ./gradlew clean build
-
-
-  #########################################
-  # 🔵 DISCOVERY SERVER
-  #########################################
-  discovery_server:
-    needs: detect_changes
-    if: contains(needs.detect_changes.outputs.changed_files, 'discovery-server/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Build Discovery Server
-        working-directory: ./discovery-server
-        run: ./gradlew clean build
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
