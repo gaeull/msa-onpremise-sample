@@ -11,51 +11,72 @@ jobs:
 
     strategy:
       matrix:
-        service: [
-          api-gateway,
-          product-service,
-          order-service,
-          user-service,
-          config-server,
-          discovery-server
-        ]
+        service:
+          - api-gateway
+          - product-service
+          - order-service
+          - user-service
+          - config-server
+          - discovery-server
 
     steps:
-      # 리포지토리 체크아웃
+      #########################################
+      # 1. Checkout
+      #########################################
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Java 17 설치
+      #########################################
+      # 2. Java 설치
+      #########################################
       - name: Set Up Java 17
         uses: actions/setup-java@v3
         with:
-          java-version: 17
           distribution: temurin
+          java-version: 17
 
-      # Gradle 캐싱 및 설정
+      #########################################
+      # 3. Gradle 설정
+      #########################################
       - name: Gradle Setup
         uses: gradle/gradle-build-action@v2
 
-      # 서비스별 Gradle Build
+      #########################################
+      # 4. gradlew 권한 수정 (2번 해결)
+      #########################################
+      - name: Fix Gradlew Permissions
+        run: |
+          echo "Applying execution permissions to gradlew..."
+          chmod +x gradlew || true
+          chmod +x */gradlew || true
+          chmod +x ${{ matrix.service }}/gradlew || true
+
+      #########################################
+      # 5. 서비스별 빌드
+      #########################################
       - name: Build Service - ${{ matrix.service }}
         run: |
-          chmod +x ./gradlew
-          ./gradlew :${{ matrix.service }}:clean :${{ matrix.service }}:build
+          ./gradlew :${{ matrix.service }}:bootJar --no-daemon
 
-      # Docker Hub Login
+      #########################################
+      # 6. Docker Hub Login
+      #########################################
       - name: Docker Hub Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Docker Build & Push
+      #########################################
+      # 7. Build & Push Docker Image
+      #########################################
       - name: Build and Push Docker Image - ${{ matrix.service }}
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
+          context: .
+          file: ${{ matrix.service }}/Dockerfile
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest
             ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
+
