@@ -1,18 +1,26 @@
 name: MSA CD Pipeline
 
+#on:
+#  push:
+#    branches:
+#      - main          # main에 push되면 자동 배포
+#  workflow_dispatch:  # 필요 시 수동 실행도 가능
+
 on:
-  push:
-    branches:
-      - main          # main에 push되면 자동 배포
-  workflow_dispatch:  # 필요 시 수동 실행도 가능
+  workflow_run:
+    workflows: ["MSA CI Pipeline"]   # CI workflow 이름
+    types:
+      - completed                    # CI 완료되면 실행
 
 jobs:
   deploy:
     # cloud Runner가 실행됨
     # 로컬 네트워크 접근 불가능
     # runs-on: ubuntu-latest
-    
-    # self-hosted runner로 바꿔야함
+
+    # CI workflow 성공시에만 실행
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # self-hosted runner로 변경
     runs-on: self-hosted
 
     strategy:
