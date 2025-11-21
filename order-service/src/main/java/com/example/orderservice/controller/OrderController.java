@@ -41,7 +41,8 @@ public class OrderController {
         List<ProductDto> products = productClient.getProducts();
 
         return List.of(
-                new OrderDto("1", "김순곤", products)
+                new OrderDto("1", "김순곤", products),
+                new OrderDto("2", "문가을", products)
         );
     }
 
