@@ -1,0 +1,94 @@
+name: MSA CD Pipeline
+
+on:
+  push:
+    branches:
+      - main          # main에 push되면 자동 배포
+  workflow_dispatch:  # 필요 시 수동 실행도 가능
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - api-gateway
+          - product-service
+          - order-service
+          - user-service
+          - config-server
+          - discovery-server
+
+    steps:
+      #########################################
+      # 1. 레포지토리 체크아웃
+      #########################################
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      #########################################
+      # 2. kubectl 설치
+      #########################################
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.30.0'
+
+      #########################################
+      # 3. K8s CA 인증서 파일로 저장
+      #########################################
+      - name: Write K8s CA cert to file
+        run: echo "${{ secrets.K8S_CA_CRT }}" > /tmp/ca.crt
+
+      #########################################
+      # 4. K8s 클러스터 접속 설정 (kubectl config)
+      #########################################
+      - name: Configure kubectl context
+        run: |
+          # 클러스터 정보 설정
+          kubectl config set-cluster cluster \
+            --server=${{ secrets.K8S_SERVER }} \
+            --certificate-authority=/tmp/ca.crt \
+            --embed-certs=true
+
+          # ServiceAccount 토큰으로 사용자 설정
+          kubectl config set-credentials github-actions \
+            --token=${{ secrets.K8S_TOKEN }}
+
+          # context에 namespace까지 포함해서 설정
+          kubectl config set-context deploy-context \
+            --cluster=cluster \
+            --user=github-actions \
+            --namespace=${{ secrets.K8S_NAMESPACE }}
+
+          # 방금 만든 context 사용
+          kubectl config use-context deploy-context
+
+      #########################################
+      # (선택) 5. 클러스터 연결 확인용
+      #########################################
+      - name: Check cluster connectivity
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      #########################################
+      # 6. K8s 매니페스트 적용
+      #    k8s/<service>/ 하위의 deployment, service 등
+      #########################################
+      - name: Apply K8s manifests for ${{ matrix.service }}
+        run: |
+          kubectl apply -f k8s/${{ matrix.service }}/
+
+      #########################################
+      # 7. Deployment 이미지 latest로 변경 + 롤링 업데이트
+      #########################################
+      - name: Update image to latest and rollout - ${{ matrix.service }}
+        run: |
+          # Deployment의 컨테이너 이름이 service 이름과 동일하다고 가정
+          kubectl set image deployment/${{ matrix.service }} \
+            ${{ matrix.service }}=${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest
+
+          # 롤링 업데이트가 끝날 때까지 대기
+          kubectl rollout status deployment/${{ matrix.service }}
