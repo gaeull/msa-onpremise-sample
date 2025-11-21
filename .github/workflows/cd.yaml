@@ -8,7 +8,12 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # cloud Runner가 실행됨
+    # 로컬 네트워크 접근 불가능
+    # runs-on: ubuntu-latest
+    
+    # self-hosted runner로 바꿔야함
+    runs-on: self-hosted
 
     strategy:
       matrix:
