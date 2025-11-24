@@ -48,76 +48,75 @@ jobs:
         with:
           version: 'v1.30.0'
 
-#      #########################################
-#      # 3. K8s CA 인증서 파일로 저장
-#      #########################################
-#      - name: Write K8s CA cert to file
-#        run: echo "${{ secrets.K8S_CA_CRT }}" > /tmp/ca.crt
-
       #########################################
-      # 3. K8s CA 인증서를 Temp 폴더에 저장 (Windows 호환)
+      # 3. K8s CA 인증서 파일로 저장
       #########################################
       - name: Write K8s CA cert to file
-        shell: powershell
-        run: |
-          $CertPath = "$env:RUNNER_TEMP\ca.crt"
-          Set-Content -Path $CertPath -Value "${{ secrets.K8S_CA_CRT }}" -Force
-          Write-Host "CA Cert saved to $CertPath"
-        env:
-          K8S_CA_CRT: ${{ secrets.K8S_CA_CRT }}
+        run: echo "${{ secrets.K8S_CA_CRT }}" > /tmp/ca.crt
 
 #      #########################################
-#      # 4. K8s 클러스터 접속 설정 (kubectl config)
+#      # 3. K8s CA 인증서를 Temp 폴더에 저장 (Windows 호환)
 #      #########################################
-#      - name: Configure kubectl context
+#      - name: Write K8s CA cert to file
+#        shell: powershell
 #        run: |
-#          # 클러스터 정보 설정
-#          kubectl config set-cluster cluster \
-#            --server=${{ secrets.K8S_SERVER }} \
-#            --certificate-authority=/tmp/ca.crt \
-#            --embed-certs=true
-#
-#          # ServiceAccount 토큰으로 사용자 설정
-#          kubectl config set-credentials github-actions \
-#            --token=${{ secrets.K8S_TOKEN }}
-#
-#          # context에 namespace까지 포함해서 설정
-#          kubectl config set-context deploy-context \
-#            --cluster=cluster \
-#            --user=github-actions \
-#            --namespace=${{ secrets.K8S_NAMESPACE }}
-#
-#          # 방금 만든 context 사용
-#          kubectl config use-context deploy-context
+#          $CertPath = "$env:RUNNER_TEMP\ca.crt"
+#          Set-Content -Path $CertPath -Value "${{ secrets.K8S_CA_CRT }}" -Force
+#          Write-Host "CA Cert saved to $CertPath"
+#        env:
+#          K8S_CA_CRT: ${{ secrets.K8S_CA_CRT }}
 
       #########################################
       # 4. K8s 클러스터 접속 설정 (kubectl config)
       #########################################
       - name: Configure kubectl context
-        shell: powershell
         run: |
-          $CertPath = "$env:RUNNER_TEMP\ca.crt"
-
-          kubectl config set-cluster cluster `
-            --server="${{ secrets.K8S_SERVER }}" `
-            --certificate-authority="$CertPath" `
+          # 클러스터 정보 설정
+          kubectl config set-cluster cluster \
+            --server=${{ secrets.K8S_SERVER }} \
+            --certificate-authority=/tmp/ca.crt \
             --embed-certs=true
 
-          kubectl config set-credentials github-actions `
-            --token="${{ secrets.K8S_TOKEN }}"
+          # ServiceAccount 토큰으로 사용자 설정
+          kubectl config set-credentials github-actions \
+            --token=${{ secrets.K8S_TOKEN }}
 
-          kubectl config set-context deploy-context `
-            --cluster=cluster `
-            --user=github-actions `
-            --namespace="${{ secrets.K8S_NAMESPACE }}"
+          # context에 namespace까지 포함해서 설정
+          kubectl config set-context deploy-context \
+            --cluster=cluster \
+            --user=github-actions \
+            --namespace=${{ secrets.K8S_NAMESPACE }}
 
+          # 방금 만든 context 사용
           kubectl config use-context deploy-context
+
+#      #########################################
+#      # 4. K8s 클러스터 접속 설정 (kubectl config)
+#      #########################################
+#      - name: Configure kubectl context
+#        shell: powershell
+#        run: |
+#          $CertPath = "$env:RUNNER_TEMP\ca.crt"
+#
+#          kubectl config set-cluster cluster `
+#            --server="${{ secrets.K8S_SERVER }}" `
+#            --certificate-authority="$CertPath" `
+#            --embed-certs=true
+#
+#          kubectl config set-credentials github-actions `
+#            --token="${{ secrets.K8S_TOKEN }}"
+#
+#          kubectl config set-context deploy-context `
+#            --cluster=cluster `
+#            --user=github-actions `
+#            --namespace="${{ secrets.K8S_NAMESPACE }}"
+#
+#          kubectl config use-context deploy-context
           
       #########################################
       # (선택) 5. 클러스터 연결 확인용
       #########################################
       - name: Check cluster connectivity
-        shell: powershell
         run: |
           kubectl cluster-info
           kubectl get nodes
@@ -127,7 +126,6 @@ jobs:
       #    k8s/<service>/ 하위의 deployment, service 등
       #########################################
       - name: Apply K8s manifests for ${{ matrix.service }}
-        shell: powershell
         run: |
           kubectl apply -f k8s/${{ matrix.service }}/
 
@@ -135,7 +133,6 @@ jobs:
       # 7. Deployment 이미지 latest로 변경 + 롤링 업데이트
       #########################################
       - name: Update image to latest and rollout - ${{ matrix.service }}
-        shell: powershell
         run: |
           # Deployment의 컨테이너 이름이 service 이름과 동일하다고 가정
           kubectl set image deployment/${{ matrix.service }} \
