@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-server
+  namespace: msa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discovery-server
+  template:
+    metadata:
+      labels:
+        app: discovery-server
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: discovery-server
+          image: gaeul/discovery-server:latest
+          ports:
+            - containerPort: 8761

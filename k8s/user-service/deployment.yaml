@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: msa
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: user-service
+          image: gaeul/user-service:latest
+          ports:
+            - containerPort: 8083

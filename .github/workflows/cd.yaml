@@ -127,7 +127,7 @@ jobs:
       #########################################
       - name: Apply K8s manifests for ${{ matrix.service }}
         run: |
-          kubectl apply -f ${{ github.workspace }}/k8s/${{ matrix.service }}/
+          kubectl apply -f k8s/${{ matrix.service }}/
 
       #########################################
       # 7. Deployment 이미지 latest로 변경 + 롤링 업데이트
