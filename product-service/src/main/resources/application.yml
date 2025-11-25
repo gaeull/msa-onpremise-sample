@@ -27,7 +27,8 @@ eureka:
   instance:
     # hostname: localhost
     hostname: product-service
-    prefer-ip-address: true
+    # hostname을 사용하도록 변경
+    prefer-ip-address: false
     instance-id: ${spring.application.name}:${server.port}
 
 
