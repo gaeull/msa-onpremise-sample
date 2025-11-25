@@ -18,7 +18,8 @@ public class ProductController {
             new ProductDto("2", "iPad Air", 900000),
             new ProductDto("3", "Galaxy S24", 1200000),
             new ProductDto("4", "test CI 2", 950123220),
-            new ProductDto("5", "test CI 3", 1000000)
+            new ProductDto("5", "test CI 3", 1000000),
+            new ProductDto("6", "test CI/CD 4", 2000000)
         );
     }
 }
