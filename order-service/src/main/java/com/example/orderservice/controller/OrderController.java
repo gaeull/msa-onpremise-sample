@@ -42,7 +42,8 @@ public class OrderController {
 
         return List.of(
                 new OrderDto("1", "김순곤", products),
-                new OrderDto("2", "문가을", products)
+                new OrderDto("2", "문가을", products),
+                new OrderDto("3", "테스트", products)
         );
     }
 
